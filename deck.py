@@ -1,5 +1,5 @@
 from card import VALUE, SUIT, Card
-from random import shuffle as shuf
+from random import shuffle as random_shuffle
 
 
 class EmptyDeckException(Exception):
@@ -20,7 +20,7 @@ class Deck:
                     elif value >= VALUE.six:
                         self.cards.append(Card(suit, value))
         if shuffle:
-            shuf(self.cards)
+            random_shuffle(self.cards)
 
     def size(self) -> int:
         return len(self.cards)
