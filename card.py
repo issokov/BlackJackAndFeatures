@@ -34,3 +34,6 @@ class Card:
 
     def __str__(self):
         return f"{self.suit.name} {self.value.name}"
+
+    def __eq__(self, other):
+        return self.suit == other.suit and self.value == other.value

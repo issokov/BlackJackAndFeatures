@@ -4,6 +4,13 @@ from typing import List
 from card import Card, VALUE
 
 
+class UserStatus(Enum):
+    in_game = 0
+    enough = 1
+    lose = 2
+    blackjack = 3
+
+
 class TURN(Enum):
     hit_me = 0
     enough = 1

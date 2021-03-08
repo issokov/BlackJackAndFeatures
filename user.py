@@ -1,12 +1,5 @@
-from enum import Enum
 from controllers import Controller
 from blackjack_basics import TURN, GameOutcome
-
-class UserStatus(Enum):
-    in_game = 0
-    enough = 1
-    lose = 2
-    blackjack = 3
 
 
 class User:
