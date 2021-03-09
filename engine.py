@@ -13,23 +13,22 @@ class GameNotInitedException(Exception):
 class Engine:
     def __init__(self):
         self.users = []
-        self.deck = None
+        self.deck = Deck(shuffle=True, is_small=False)
         self.bj_gametable = None
-        self.__is_inited = False
+        self._is_inited = False
 
     def add_user(self, user: User):
         self.users.append(user)
 
     def init_game(self):
-        self.deck = Deck(shuffle=True, is_small=False, use_joker=False)
         self.bj_gametable = BlackJackGameTable(self.users)
         for user in self.bj_gametable.get_active_users():
             self.bj_gametable.add_card(user, self.deck.pull_out())
             self.bj_gametable.add_card(user, self.deck.pull_out())
-        self.__is_inited = True
+        self._is_inited = True
 
     def one_tick(self):
-        if not self.__is_inited:
+        if not self._is_inited:
             raise GameNotInitedException("Before .one_tick() you should call .init_game()")
         for user in self.bj_gametable.get_active_users():
             turn = user.make_turn(deepcopy(self.bj_gametable.users_status), deepcopy(self.bj_gametable.users_cards))
@@ -72,6 +71,10 @@ class Engine:
             if score == max_score:
                 result[user.id] = (score, GameOutcome.winner if winners_count == 1 else GameOutcome.draw)
         return result
+
+    def outcomes_notify(self, outcomes: dict):
+        for user in self.users:
+            user.outcome_notify(*outcomes[user.id])
 
     def process_turn(self, user: User, turn: TURN):
         if user in self.bj_gametable.get_active_users():

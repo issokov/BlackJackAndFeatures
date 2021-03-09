@@ -16,7 +16,6 @@ class VALUE(Enum):
     queen = 10
     king = 11
     ace = 12
-    joker = 13
 
 
 @unique

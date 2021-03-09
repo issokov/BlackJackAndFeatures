@@ -16,8 +16,6 @@ class BlackJackGameTable:
         return self.users_cards[user.id]
 
     def add_card(self, user: User, card: Card):
-        if card.value is VALUE.joker:
-            raise WrongDeckConfiguration("Joker is not in game")
         if self.users_status[user.id] is UserStatus.in_game:
             self.users_cards[user.id].append(card)
             new_score = self.get_user_score(user)

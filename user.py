@@ -18,3 +18,4 @@ class User:
     def outcome_notify(self, game_score: int, status: GameOutcome):
         # Any other logics
         self.controller.outcome_notify(game_score, status)
+

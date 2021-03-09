@@ -25,7 +25,7 @@ class Controller(ABC):
 
 
 class ManualController(Controller):
-    def __init__(self, user_id: int):
+    def __init__(self, user_id: int) -> object:
         super().__init__(user_id)
         self.my_cards = []
 
@@ -55,7 +55,7 @@ class ManualController(Controller):
 
 def recreate_deck(users_cards: dict):
     was_pulled = chain.from_iterable(users_cards.values())
-    deck = Deck(shuffle=True, is_small=False, use_joker=False)
+    deck = Deck(shuffle=True, is_small=False)
     for card in was_pulled:
         deck.cards.remove(card)
     return deck

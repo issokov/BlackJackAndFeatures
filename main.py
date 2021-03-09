@@ -17,10 +17,7 @@ def main():
         while not game.is_ended():
             game.one_tick()
 
-        outcomes = game.generate_outcomes()
-        for user in game.users:
-            user.outcome_notify(*outcomes[user.id])
-
+        game.outcomes_notify(game.generate_outcomes())
 
         # print("One more time? ('Y/n':)")
         # answer = '?'
