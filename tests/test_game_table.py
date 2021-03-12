@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from blackjack_basics import UserStatus, WrongRightsException
-from card import *
-from user import User
-from controllers import ManualController
-from game_table import BlackJackGameTable
+from engine.blackjack_basics import UserStatus, WrongRightsException
+from engine.card import *
+from engine.user import User
+from controllers.manual_controller import ManualController
+from engine.game_table import BlackJackGameTable
 
 
 class TestGameTable(TestCase):

@@ -1,12 +1,12 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from card import Card, SUIT, VALUE
-from controllers import ManualController
-from deck import Deck
-from engine import Engine
-from user import User
-from blackjack_basics import TURN, UserStatus, GameOutcome
+from engine.card import Card, SUIT, VALUE
+from controllers.manual_controller import ManualController
+from engine.deck import Deck
+from engine.engine import Engine
+from engine.user import User
+from engine.blackjack_basics import TURN, UserStatus, GameOutcome
 
 
 class TestEngine(TestCase):

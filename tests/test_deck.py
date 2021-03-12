@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from deck import Deck, EmptyDeckException
-from card import Card, SUIT, VALUE
+from engine.deck import Deck, EmptyDeckException
+from engine.card import Card, SUIT, VALUE
 
 
 class TestDeck(TestCase):

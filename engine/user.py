@@ -1,5 +1,5 @@
-from controllers import Controller
-from blackjack_basics import TURN, GameOutcome
+from controllers.controller import Controller
+from .blackjack_basics import TURN, GameOutcome
 
 
 class User:

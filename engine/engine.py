@@ -1,9 +1,9 @@
 from copy import deepcopy
 
-from deck import Deck
-from user import User
-from game_table import BlackJackGameTable
-from blackjack_basics import GameOutcome, TURN, WrongRightsException, UserStatus, get_score
+from .deck import Deck
+from .user import User
+from .game_table import BlackJackGameTable
+from .blackjack_basics import GameOutcome, TURN, WrongRightsException, UserStatus
 
 
 class GameNotInitedException(Exception):
@@ -27,13 +27,21 @@ class Engine:
             self.bj_gametable.add_card(user, self.deck.pull_out())
         self._is_inited = True
 
+    def get_active_users(self):
+        return self.bj_gametable.get_active_users()
+
+    def get_game_table_info(self):
+        return deepcopy(self.bj_gametable.users_status), deepcopy(self.bj_gametable.users_cards)
+
     def one_tick(self):
         if not self._is_inited:
             raise GameNotInitedException("Before .one_tick() you should call .init_game()")
         for user in self.bj_gametable.get_active_users():
-            turn = user.make_turn(deepcopy(self.bj_gametable.users_status), deepcopy(self.bj_gametable.users_cards))
-            self.process_turn(user, turn)
-            self.update_users()
+            turn = user.make_turn(*self.get_game_table_info())
+            if self.process_turn(user, turn):
+                self.update_users()
+            else:
+                break
             if self.is_ended():
                 return
 
@@ -84,6 +92,7 @@ class Engine:
             elif turn is TURN.enough:
                 self.bj_gametable.set_status(user, UserStatus.enough)
             else:
-                raise NotImplementedError(".process_turn require TURN object")
-        else:
-            raise WrongRightsException("User is not in game")
+                return False
+            return True
+        elif turn is not None:
+            raise WrongRightsException(f"User {user.id} is not in game")

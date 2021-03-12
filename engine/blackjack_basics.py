@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 
-from card import Card, VALUE
+from .card import Card, VALUE
 
 
 class UserStatus(Enum):

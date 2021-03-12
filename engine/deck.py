@@ -1,4 +1,4 @@
-from card import VALUE, SUIT, Card
+from .card import VALUE, SUIT, Card
 from random import shuffle as random_shuffle
 
 

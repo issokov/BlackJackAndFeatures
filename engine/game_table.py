@@ -1,6 +1,6 @@
-from card import Card, VALUE
-from user import User
-from blackjack_basics import get_score, WrongDeckConfiguration, WrongRightsException, UserStatus
+from .card import Card
+from .user import User
+from .blackjack_basics import get_score, WrongRightsException, UserStatus
 
 
 class BlackJackGameTable:

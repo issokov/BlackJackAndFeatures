@@ -1,12 +1,13 @@
-from user import User
-from engine import Engine
-from controllers import ManualController, IntelligenzaArtificialeControllore
+from engine.user import User
+from engine.engine import Engine
+from controllers.manual_controller import ManualController
+from controllers.ai_controller import AIController
 
 
 def main():
     while True:
         game = Engine()
-        user_1 = User(1, IntelligenzaArtificialeControllore(1))
+        user_1 = User(1, AIController(1))
         user_2 = User(2, ManualController(2))
         game.add_user(user_1)
         game.add_user(user_2)
