@@ -11,32 +11,27 @@ from engine.user import User
 
 
 class GuiUser(User):
+    # pylint: disable=too-many-instance-attributes, too-many-arguments
     def __init__(self, root_widget, username, controller, turn_callback, restart_callback):
         super().__init__(controller.user_id, controller)
         self.username = username
-        self.root_widget = root_widget
         self.card_widgets = []
         self.turn_callback = turn_callback
         self.restart_callback = restart_callback
 
-        self.root_widget.rowconfigure(0, weight=0)
-        self.root_widget.rowconfigure(1, weight=0)
-        self.root_widget.rowconfigure(2, weight=1)
-        self.root_widget.columnconfigure(0, weight=1)
-        self.root_widget.columnconfigure(1, weight=1)
-        self.nick_label = tk.Label(self.root_widget, text=username, bg='white')
+        self.nick_label = tk.Label(root_widget, text=username, bg='white')
         self.nick_label.grid(row=0, column=0, columnspan=2, sticky='nsew')
-        self.score_label = tk.Label(self.root_widget, text='Score: 0', bg='white')
+        self.score_label = tk.Label(root_widget, text='Score: 0', bg='white')
         self.score_label.grid(row=1, column=0, columnspan=2, sticky='nsew')
-        self.cards_frame = tk.Frame(self.root_widget, bg='yellow')
+        self.cards_frame = tk.Frame(root_widget, bg='yellow')
         self.cards_frame.grid(row=2, column=0, columnspan=2, sticky='nsew')
         self.cards_frame.columnconfigure(0, weight=1)
         self.cards_frame.columnconfigure(1, weight=1)
-        self.hit_button = tk.Button(self.root_widget, text="Hit me!", bg='white',
-                                    state='disabled', command=lambda: turn_callback(self.id, True))
+        self.hit_button = tk.Button(root_widget, text="Hit me!", bg='white', state='disabled',
+                                    command=lambda: turn_callback(self.user_id, True))
         self.hit_button.grid(row=10, column=0, sticky='news')
-        self.enough_button = tk.Button(self.root_widget, text="Enough!", bg='white',
-                                       state='disabled', command=lambda: turn_callback(self.id, False))
+        self.enough_button = tk.Button(root_widget, text="Enough!", state='disabled', bg='white',
+                                       command=lambda: turn_callback(self.user_id, False))
         self.enough_button.grid(row=10, column=1, sticky='news')
 
     def make_turn(self, users_status: dict, users_cards: dict):
@@ -46,15 +41,17 @@ class GuiUser(User):
             self.hit_button['state'] = 'normal'
             self.enough_button['state'] = 'normal'
         else:
-            self.turn_callback(self.id, turn)
+            self.turn_callback(self.user_id, turn)
 
     def update_table(self, users_status: dict, users_cards: dict):
-        for card_number, card in enumerate(users_cards[self.id]):
+        for card_number, card in enumerate(users_cards[self.user_id]):
             if card_number >= len(self.card_widgets):
                 self.card_widgets.append(tk.Label(self.cards_frame, text=str(card), bg='white'))
-                self.card_widgets[-1].grid(row=len(self.card_widgets) - 1, column=0, columnspan=2, sticky='ew')
+                self.card_widgets[-1].grid(row=len(self.card_widgets) - 1, column=0,
+                                           columnspan=2, sticky='ew')
                 self.cards_frame.rowconfigure(len(self.card_widgets) - 1)
-        self.score_label['text'] = f"Score: {get_score(users_cards[self.id])} ({users_status[self.id].name})"
+        self.score_label['text'] = f"Score: {get_score(users_cards[self.user_id])}" \
+                                   f" ({users_status[self.user_id].name})"
         self.cards_frame['bg'] = 'yellow'
         self.hit_button['state'] = 'disabled'
         self.enough_button['state'] = 'disabled'
@@ -67,7 +64,8 @@ class GuiUser(User):
         self.enough_button['state'] = 'normal'
         self.enough_button['text'] = "BACK TO MENU"
         self.enough_button['command'] = self.restart_callback
-        self.cards_frame['bg'] = 'green' if status is GameOutcome.winner or status is GameOutcome.draw else 'red'
+        color = 'green' if status in [GameOutcome.WINNER, GameOutcome.DRAW] else 'red'
+        self.cards_frame['bg'] = color
         self.score_label['text'] = f"OUTCOME: {status.name} ({game_score} p)"
 
 
@@ -84,13 +82,18 @@ class Application(tk.Tk):
     def start_game(self):
         if len(self.players_info) >= 2:
             for user_id, user_info in enumerate(self.players_info):
-                controller = AIController(user_id) if user_info[1].get() else Controller(user_id)
-                self.game.add_player(user_info[0].get() + (' (AI)' if user_info[1].get() else ''), controller)
+                nickname = user_info[0].get()
+                if user_info[1].get():
+                    controller = AIController(user_id)
+                    nickname += ' (AI)'
+                else:
+                    controller = Controller(user_id)
+                self.game.add_player(nickname, controller)
             self.game.tkraise()
             self.game.start_game()
 
 
-class Game(tk.Frame):
+class Game(tk.Frame):  # pylint: disable=too-many-ancestors
     def __init__(self, master):
         super().__init__(master)
         self.grid(column=0, row=0, sticky="news")
@@ -103,20 +106,20 @@ class Game(tk.Frame):
         self.active_users_queue = Queue()
 
     def turn_callback(self, user_id: int, is_hit_me: bool):
-        self.engine.process_turn(self.users[user_id], TURN.hit_me if is_hit_me else TURN.enough)
+        self.engine.process_turn(self.users[user_id], TURN.HIT_ME if is_hit_me else TURN.ENOUGH)
         self.users[user_id].update_table(*self.engine.get_game_table_info())
         if self.active_users_queue.empty():
             queue_update = self.engine.get_active_users()
-            if not queue_update:
-                self.engine.outcomes_notify(self.engine.generate_outcomes())
-                return
-            else:
+            if queue_update:
                 for user in queue_update:
                     self.active_users_queue.put(user)
+            else:
+                self.engine.outcomes_notify(self.engine.generate_outcomes())
+                return
         user = self.active_users_queue.get()
         self.engine.process_turn(user, user.make_turn(*self.engine.get_game_table_info()))
 
-    def restart_callback(self):
+    def to_menu_callback(self):
         self.user_frames = []
         self.users = []
         self.active_users_queue = Queue()
@@ -124,13 +127,18 @@ class Game(tk.Frame):
         self.master.geometry('200x250')
         self.master.menu.tkraise()
 
-
     def add_player(self, username: str, controller):
         frame = tk.Frame(self, bg="white")
         frame.grid(column=controller.user_id, row=0, sticky="news")
         self.columnconfigure(controller.user_id, weight=1)
         self.user_frames.append(frame)
-        self.users.append(GuiUser(frame, username, controller, self.turn_callback, self.restart_callback))
+        frame.rowconfigure(0, weight=0)
+        frame.rowconfigure(1, weight=0)
+        frame.rowconfigure(2, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+        user = GuiUser(frame, username, controller, self.turn_callback, self.to_menu_callback)
+        self.users.append(user)
 
     def start_game(self):
         self.master.geometry('1100x250')
@@ -148,14 +156,21 @@ class Game(tk.Frame):
 
 
 class Menu(tk.Frame):
+    # pylint: disable=too-many-ancestors
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, master, players_info: list):
         super().__init__(master)
         self.players_table = tk.Frame(self)
-        self.head_player_label = tk.Label(self.players_table, text="Players", padx=10, pady=10, bg="white", fg="black")
-        self.head_ai_label = tk.Label(self.players_table, text="AI", padx=10, pady=10, bg="white", fg="black")
-        self.add_player_btn = tk.Button(self, text="Add player", bg='white', command=self.add_player)
-        self.rem_player_btn = tk.Button(self, text="Remove player", bg='white', command=self.rem_player)
-        self.start_game_btn = tk.Button(self, text="Start game", bg='white', command=master.start_game)
+        self.head_player_label = tk.Label(self.players_table, text="Players",
+                                          padx=10, pady=10, bg="white", fg="black")
+        self.head_ai_label = tk.Label(self.players_table, text="AI",
+                                      padx=10, pady=10, bg="white", fg="black")
+        self.add_player_btn = tk.Button(self, text="Add player",
+                                        bg='white', command=self.add_player)
+        self.rem_player_btn = tk.Button(self, text="Remove player",
+                                        bg='white', command=self.rem_player)
+        self.start_game_btn = tk.Button(self, text="Start game",
+                                        bg='white', command=master.start_game)
         self.player_widgets = []
         self.players_info = players_info
         self.put_widgets()
@@ -180,9 +195,12 @@ class Menu(tk.Frame):
     def add_player(self):
         if len(self.players_info) < 5:
             player_number = 1 + len(self.player_widgets)
-            self.players_info.append((tk.StringVar(self, value=f"Player {player_number}"), tk.BooleanVar(value=False)))
-            username = tk.Entry(self.players_table, bg="white", textvariable=self.players_info[-1][0])
-            checkbox = tk.Checkbutton(self.players_table, bg="white", variable=self.players_info[-1][1])
+            self.players_info.append((tk.StringVar(self, value=f"Player {player_number}"),
+                                      tk.BooleanVar(value=False)))
+            username = tk.Entry(self.players_table, bg="white",
+                                textvariable=self.players_info[-1][0])
+            checkbox = tk.Checkbutton(self.players_table, bg="white",
+                                      variable=self.players_info[-1][1])
             username.grid(row=player_number, column=0, sticky='we')
             checkbox.grid(row=player_number, column=1, sticky='we')
             self.player_widgets.append((username, checkbox))
@@ -196,5 +214,6 @@ class Menu(tk.Frame):
 
 
 if __name__ == "__main__":
+    # noinspection PyMissingOrEmptyDocstring
     app = Application()
     app.mainloop()

@@ -1,4 +1,4 @@
-from engine.blackjack_basics import get_score, TURN
+from engine.blackjack_basics import get_score, TURN, GameOutcome
 from controllers.controller import Controller
 
 
@@ -9,8 +9,9 @@ class ManualController(Controller):
 
     def show_table(self, users_status: dict, users_cards: dict):
         for user_id in users_status.keys():
-            print(f"User {'YOU' if self.user_id == user_id else user_id} has '{users_status[user_id].name}' status")
-            print("\n".join(map(lambda x: str(x), users_cards[user_id])))
+            print(f"User {'YOU' if self.user_id == user_id else user_id}"
+                  f" has '{users_status[user_id].name}' status")
+            print("\n".join(map(str, users_cards[user_id])))
             print(f"Score: {get_score(users_cards[user_id])}")
             print('------------------------------')
 
@@ -25,7 +26,7 @@ class ManualController(Controller):
         print("Your turn (hit me / enough): write 'h' or 'e'")
         while answer not in ['e', 'h']:
             answer = input().lower()
-        return TURN.enough if answer == 'e' else TURN.hit_me
+        return TURN.ENOUGH if answer == 'e' else TURN.HIT_ME
 
-    def outcome_notify(self, game_score: int, status):
-        print(f"Game is over user #{self.user_id}. Your score: {game_score}. Your status: {status.name}")
+    def outcome_notify(self, score: int, status: GameOutcome):
+        print(f"Game is over user #{self.user_id}. Your score: {score}. Your status: {status.name}")

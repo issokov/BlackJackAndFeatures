@@ -1,25 +1,25 @@
 from enum import Enum
 from typing import List
 
-from .card import Card, VALUE
+from engine.card import Card, VALUE
 
 
 class UserStatus(Enum):
-    in_game = 0
-    enough = 1
-    lose = 2
-    blackjack = 3
+    IN_GAME = 0
+    ENOUGH = 1
+    LOSE = 2
+    BLACKJACK = 3
 
 
 class TURN(Enum):
-    hit_me = 0
-    enough = 1
+    HIT_ME = 0
+    ENOUGH = 1
 
 
 class GameOutcome(Enum):
-    loser = 0
-    draw = 1
-    winner = 2
+    LOSER = 0
+    DRAW = 1
+    WINNER = 2
 
 
 class WrongDeckConfiguration(Exception):
@@ -33,14 +33,14 @@ class WrongRightsException(Exception):
 def get_score(cards: List[Card]):
     score = 0
     value_to_score = {
-        VALUE.two: 2, VALUE.three: 3, VALUE.four: 4, VALUE.five: 5,
-        VALUE.six: 6, VALUE.seven: 7, VALUE.eight: 8, VALUE.nine: 9,
-        VALUE.ten: 10, VALUE.jack: 10, VALUE.queen: 10, VALUE.king: 10
+        VALUE.TWO: 2, VALUE.THREE: 3, VALUE.FOUR: 4, VALUE.FIVE: 5,
+        VALUE.SIX: 6, VALUE.SEVEN: 7, VALUE.EIGHT: 8, VALUE.NINE: 9,
+        VALUE.TEN: 10, VALUE.JACK: 10, VALUE.QUEEN: 10, VALUE.KING: 10
     }
     for card in cards:
-        if card.value is not VALUE.ace:
+        if card.value is not VALUE.ACE:
             score += value_to_score[card.value]
-        elif card.value is VALUE.ace:
+        elif card.value is VALUE.ACE:
             score += 1 if score + 11 > 21 else 11
         else:
             raise WrongDeckConfiguration

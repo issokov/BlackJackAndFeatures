@@ -3,27 +3,27 @@ from enum import Enum, unique
 
 @unique
 class VALUE(Enum):
-    two = 0
-    three = 1
-    four = 2
-    five = 3
-    six = 4
-    seven = 5
-    eight = 6
-    nine = 7
-    ten = 8
-    jack = 9
-    queen = 10
-    king = 11
-    ace = 12
+    TWO = 0
+    THREE = 1
+    FOUR = 2
+    FIVE = 3
+    SIX = 4
+    SEVEN = 5
+    EIGHT = 6
+    NINE = 7
+    TEN = 8
+    JACK = 9
+    QUEEN = 10
+    KING = 11
+    ACE = 12
 
 
 @unique
 class SUIT(Enum):
-    hearts = 0
-    diamonds = 1
-    clubs = 2
-    spades = 3
+    HEARTS = 0
+    DIAMONDS = 1
+    CLUBS = 2
+    SPADES = 3
 
 
 class Card:

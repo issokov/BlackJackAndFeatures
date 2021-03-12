@@ -1,10 +1,10 @@
 from controllers.controller import Controller
-from .blackjack_basics import TURN, GameOutcome
+from engine.blackjack_basics import TURN, GameOutcome
 
 
 class User:
     def __init__(self, user_id, controller: Controller):
-        self.id = user_id
+        self.user_id = user_id
         self.controller = controller
 
     def make_turn(self, users_status: dict, users_cards: dict) -> TURN:
@@ -18,4 +18,3 @@ class User:
     def outcome_notify(self, game_score: int, status: GameOutcome):
         # Any other logics
         self.controller.outcome_notify(game_score, status)
-
