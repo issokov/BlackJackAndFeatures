@@ -28,15 +28,15 @@ class GuiUser(User):
         self.cards_frame.columnconfigure(0, weight=1)
         self.cards_frame.columnconfigure(1, weight=1)
         self.hit_button = tk.Button(root_widget, text="Hit me!", bg='white', state='disabled',
-                                    command=lambda: turn_callback(self.user_id, True))
+                                    command=lambda: turn_callback(self.user_id, TURN.HIT_ME))
         self.hit_button.grid(row=10, column=0, sticky='news')
         self.enough_button = tk.Button(root_widget, text="Enough!", state='disabled', bg='white',
-                                       command=lambda: turn_callback(self.user_id, False))
+                                       command=lambda: turn_callback(self.user_id, TURN.ENOUGH))
         self.enough_button.grid(row=10, column=1, sticky='news')
 
     def make_turn(self, users_status: dict, users_cards: dict):
         turn = self.controller.make_turn(users_status, users_cards)
-        if not turn:
+        if turn is None:
             self.cards_frame['bg'] = 'green'
             self.hit_button['state'] = 'normal'
             self.enough_button['state'] = 'normal'
@@ -105,8 +105,8 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         self.user_frames = []
         self.active_users_queue = Queue()
 
-    def turn_callback(self, user_id: int, is_hit_me: bool):
-        self.engine.process_turn(self.users[user_id], TURN.HIT_ME if is_hit_me else TURN.ENOUGH)
+    def turn_callback(self, user_id: int, turn: TURN):
+        self.engine.process_turn(self.users[user_id], turn)
         self.users[user_id].update_table(*self.engine.get_game_table_info())
         if self.active_users_queue.empty():
             queue_update = self.engine.get_active_users()
@@ -120,9 +120,11 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         self.engine.process_turn(user, user.make_turn(*self.engine.get_game_table_info()))
 
     def to_menu_callback(self):
-        self.user_frames = []
-        self.users = []
-        self.active_users_queue = Queue()
+        for user_frame in self.user_frames:
+            user_frame.destroy()
+        self.user_frames.clear()
+        self.users.clear()
+        self.active_users_queue.queue.clear()
         self.engine = None
         self.master.geometry('200x250')
         self.master.menu.tkraise()
@@ -141,6 +143,7 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         self.users.append(user)
 
     def start_game(self):
+        print(f"USERS: {len(self.users)}")
         self.master.geometry('1100x250')
         self.engine = Engine()
         for user in self.users:

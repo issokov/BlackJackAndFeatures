@@ -28,7 +28,8 @@ class AIController(Controller):
                     expect_score = sorted(evaluated_scores[user_id])[self._evaluations_count // 2]
                     expect_max = max(expect_score if expect_score <= 21 else 0, expect_max)
         my_expected = sorted(evaluated_scores[self.user_id])[self._evaluations_count // 2]
-        print(f"Intelligenza Artificiale:\n\tscore: {my_score}\n\tmy_expected: {my_expected}"
+        print(f"Intelligenza Artificiale {self.user_id}:\n\t"
+              f"score: {my_score}\n\tmy_expected: {my_expected}"
               f"\n\tmax_score: {max_score}\n\tenemy_expected: {expect_max}")
         print("\tSo...")
 
