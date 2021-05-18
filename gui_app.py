@@ -1,13 +1,20 @@
 import tkinter as tk
 from queue import Queue
+from tkinter import messagebox
+
+import requests
 
 from controllers.ai_controller import AIController
 
 from controllers.controller import Controller
 from engine.blackjack_basics import GameOutcome, get_score, TURN
+from engine.deck import Deck
 
 from engine.engine import Engine
 from engine.user import User
+
+client_id = None
+server_url = None
 
 
 class GuiUser(User):
@@ -18,7 +25,6 @@ class GuiUser(User):
         self.card_widgets = []
         self.turn_callback = turn_callback
         self.restart_callback = restart_callback
-
         self.nick_label = tk.Label(root_widget, text=username, bg='white')
         self.nick_label.grid(row=0, column=0, columnspan=2, sticky='nsew')
         self.score_label = tk.Label(root_widget, text='Score: 0', bg='white')
@@ -35,12 +41,14 @@ class GuiUser(User):
         self.enough_button.grid(row=10, column=1, sticky='news')
 
     def make_turn(self, users_status: dict, users_cards: dict):
-        turn = self.controller.make_turn(users_status, users_cards)
-        if turn is None:
-            self.cards_frame['bg'] = 'green'
+        self.cards_frame['bg'] = 'green'
+        if client_id:
+            requests.post(server_url + '/yourturn', json={'player_id': self.user_id})
+        if client_id is None or client_id == self.user_id:
             self.hit_button['state'] = 'normal'
             self.enough_button['state'] = 'normal'
-        else:
+        turn = self.controller.make_turn(users_status, users_cards)
+        if turn:
             self.turn_callback(self.user_id, turn)
 
     def update_table(self, users_status: dict, users_cards: dict):
@@ -70,7 +78,7 @@ class GuiUser(User):
 
 
 class Application(tk.Tk):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, server_ip: str, port: str, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.geometry('200x250')
         self.rowconfigure(0, weight=1)
@@ -78,8 +86,19 @@ class Application(tk.Tk):
         self.players_info = []
         self.game = Game(self)
         self.menu = Menu(self, self.players_info)
+        self.last_step_number = -1
+        global server_url
+        server_url = f"http://{server_ip}:{port}"
 
-    def start_game(self):
+    def start_pooling(self):
+        data = requests.post(server_url + '/turn_request', json={'id': client_id}).json()
+        if data.get('turn', None) is not None and data['user_id'] != client_id and data['number'] > self.last_step_number:
+            self.last_step_number = data['number']
+            self.game.turn_callback(data['user_id'], TURN(data['turn']))
+        if client_id is not None:
+            self.after(100, self.start_pooling)
+
+    def start_game(self, deck=None):
         if len(self.players_info) >= 2:
             for user_id, user_info in enumerate(self.players_info):
                 nickname = user_info[0].get()
@@ -89,8 +108,36 @@ class Application(tk.Tk):
                 else:
                     controller = Controller(user_id)
                 self.game.add_player(nickname, controller)
+            if client_id is not None:
+                self.start_pooling()
             self.game.tkraise()
-            self.game.start_game()
+            self.game.start_game(deck)
+
+    def connect_to_server(self):
+        if len(self.players_info) != 1 or self.players_info[0][1].get():
+            messagebox.showerror(title='Wrong player count', message='Should be one not AI player with your nickname')
+        else:
+            resp = requests.post(server_url + '/connect', json={'name': self.players_info[0][0].get()})
+            data = resp.json()
+            if data['status'] == 'FAIL':
+                messagebox.showerror(title='Wrong nickname', message=data['error_msg'])
+            elif data['status'] == 'OK':
+                messagebox.showinfo(title='Please, wait', message='Waiting another players...')
+                global client_id
+                client_id = data['id']
+                self.start_game_awaiting()
+
+    def start_game_awaiting(self):
+        resp = requests.post(server_url + '/start', json={'id': client_id})
+        data = resp.json()
+        while self.players_info:
+            self.menu.rem_player()
+        for player in data['players']:
+            self.menu.add_player(username=player[0], ai=False)
+        if data['status'] == 'OK' and data['ready']:
+            self.start_game(Deck(str_deck=data['deck']))
+        else:
+            self.after(100, self.start_game_awaiting)
 
 
 class Game(tk.Frame):  # pylint: disable=too-many-ancestors
@@ -107,6 +154,12 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
 
     def turn_callback(self, user_id: int, turn: TURN):
         self.engine.process_turn(self.users[user_id], turn)
+        if None not in [client_id, turn] and user_id == client_id:
+            resp = requests.post(server_url + '/make_turn', json={'id': user_id, 'turn': turn.value})
+            data = resp.json()
+            if data['status'] == 'FAIL':
+                messagebox.showerror(title='Not your turn', message=data['error_msg'])
+
         self.users[user_id].update_table(*self.engine.get_game_table_info())
         if self.active_users_queue.empty():
             queue_update = self.engine.get_active_users()
@@ -120,7 +173,12 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         self.engine.process_turn(user, user.make_turn(*self.engine.get_game_table_info()))
 
     def to_menu_callback(self):
+        global client_id
+        if client_id:
+            requests.post(server_url + '/clear')
+        client_id = None
         for user_frame in self.user_frames:
+            user_frame.grid_forget()
             user_frame.destroy()
         self.user_frames.clear()
         self.users.clear()
@@ -129,7 +187,7 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         self.master.geometry('200x250')
         self.master.menu.tkraise()
 
-    def add_player(self, username: str, controller):
+    def add_player(self, username: str, controller: Controller):
         frame = tk.Frame(self, bg="white")
         frame.grid(column=controller.user_id, row=0, sticky="news")
         self.columnconfigure(controller.user_id, weight=1)
@@ -142,10 +200,10 @@ class Game(tk.Frame):  # pylint: disable=too-many-ancestors
         user = GuiUser(frame, username, controller, self.turn_callback, self.to_menu_callback)
         self.users.append(user)
 
-    def start_game(self):
-        print(f"USERS: {len(self.users)}")
+    def start_game(self, deck=None):
         self.master.geometry('1100x250')
-        self.engine = Engine()
+        deck = Deck() if deck is None else deck
+        self.engine = Engine(deck)
         for user in self.users:
             self.engine.add_user(user)
         self.engine.init_game()
@@ -174,6 +232,7 @@ class Menu(tk.Frame):
                                         bg='white', command=self.rem_player)
         self.start_game_btn = tk.Button(self, text="Start game",
                                         bg='white', command=master.start_game)
+        self.start_server_game = tk.Button(self, text="Connect to server", bg='white', command=master.connect_to_server)
         self.player_widgets = []
         self.players_info = players_info
         self.put_widgets()
@@ -192,14 +251,17 @@ class Menu(tk.Frame):
         self.add_player_btn.grid(row=1, column=0, sticky='news')
         self.rem_player_btn.grid(row=2, column=0, sticky='news')
         self.start_game_btn.grid(row=3, column=0, sticky='news')
+        self.start_server_game.grid(row=4, column=0, sticky='news')
         self.add_player()
         self.add_player()
 
-    def add_player(self):
+    def add_player(self, username=None, ai=None):
         if len(self.players_info) < 5:
             player_number = 1 + len(self.player_widgets)
-            self.players_info.append((tk.StringVar(self, value=f"Player {player_number}"),
-                                      tk.BooleanVar(value=False)))
+            username = f"Player {player_number}" if username is None else username
+            ai = False if ai is None else ai
+            self.players_info.append((tk.StringVar(self, value=username),
+                                      tk.BooleanVar(value=ai)))
             username = tk.Entry(self.players_table, bg="white",
                                 textvariable=self.players_info[-1][0])
             checkbox = tk.Checkbutton(self.players_table, bg="white",
@@ -218,5 +280,5 @@ class Menu(tk.Frame):
 
 if __name__ == "__main__":
     # noinspection PyMissingOrEmptyDocstring
-    app = Application()
+    app = Application('0.0.0.0', '5000')
     app.mainloop()

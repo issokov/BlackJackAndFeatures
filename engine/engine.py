@@ -11,9 +11,9 @@ class GameNotInitedException(Exception):
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, deck=None):
         self.users = []
-        self.deck = Deck(shuffle=True, is_small=False)
+        self.deck = Deck(shuffle=True, is_small=False) if deck is None else deck
         self.bj_gametable = None
         self.is_inited = False
 

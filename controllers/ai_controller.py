@@ -41,3 +41,6 @@ class AIController(Controller):
 
     def outcome_notify(self, score: int, status: GameOutcome):
         print(f"AI {self.user_id} SCORE: {score}\nAI {self.user_id}STATUS: {status.name}")
+
+    def notify_server(self, turn):
+        pass

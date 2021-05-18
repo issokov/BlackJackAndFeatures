@@ -20,6 +20,9 @@ class Controller(ABC):
     def outcome_notify(self, score: int, status: GameOutcome):
         pass
 
+    def notify_server(self, turn):
+        pass
+
 
 def recreate_deck(users_cards: dict):
     was_pulled = chain.from_iterable(users_cards.values())

@@ -30,3 +30,6 @@ class ManualController(Controller):
 
     def outcome_notify(self, score: int, status: GameOutcome):
         print(f"Game is over user #{self.user_id}. Your score: {score}. Your status: {status.name}")
+
+    def notify_server(self, turn):
+        pass
